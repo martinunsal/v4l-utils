@@ -33,6 +33,8 @@ AC_CONFIG_FILES([Makefile
 	utils/qv4l2/Makefile
 	utils/rds-ctl/Makefile
 
+	unittests/Makefile
+
 	contrib/Makefile
 	contrib/freebsd/Makefile
 	contrib/test/Makefile
