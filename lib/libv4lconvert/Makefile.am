@@ -31,7 +31,7 @@ ov518_decomp_SOURCES = ov518-decomp.c
 
 TESTS = test_libv4lconvert
 
-check_PROGRAMS = test_libv4lconvert
+bin_PROGRAMS = test_libv4lconvert
 
 test_libv4lconvert_SOURCES = libv4lconvert_tests.cpp
 test_libv4lconvert_LDADD = ../../unittests/libgtest.la libv4lconvert.la
