@@ -253,5 +253,41 @@ TEST(libv4lconvert, colorspace_conversion)
     v4lconvert_data* pData = ::v4lconvert_create_with_dev_ops(42, pLog, registry.getDevOps());
     ASSERT_TRUE(pData);
     
+    v4l2_format src;
+    initWithZero(&src);
+    src.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    src.fmt.pix.width = 16;
+    src.fmt.pix.height = 16;
+    src.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB24;
+    src.fmt.pix.bytesperline = src.fmt.pix.width * 3;
+    src.fmt.pix.sizeimage = src.fmt.pix.bytesperline * src.fmt.pix.height;
+    src.fmt.pix.colorspace = V4L2_COLORSPACE_SRGB;
+
+    src.fmt.pix.sizeimage--;
+
+    v4l2_format dst;
+    initWithZero(&dst);
+    dst.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    dst.fmt.pix.width = 16;
+    dst.fmt.pix.height = 16;
+    dst.fmt.pix.pixelformat = V4L2_PIX_FMT_BGR24;
+    dst.fmt.pix.bytesperline = dst.fmt.pix.width * 3;
+    dst.fmt.pix.sizeimage = dst.fmt.pix.bytesperline * dst.fmt.pix.height;
+    dst.fmt.pix.colorspace = V4L2_COLORSPACE_SRGB;
+
+    unsigned char* pSourceImage = new unsigned char[src.fmt.pix.sizeimage];
+    unsigned char* pDestImage = new unsigned char[dst.fmt.pix.sizeimage];
+
+    int res = v4lconvert_convert(pData, &src, &dst, pSourceImage, src.fmt.pix.sizeimage,
+    		pDestImage, dst.fmt.pix.sizeimage);
+
+    EXPECT_EQ( -1, res );
+
+    delete [] pSourceImage;
+    delete [] pDestImage;
+
     v4lconvert_destroy(pData); pData = NULL;
+
+    delete pDevice;
+    delete pLog;
 }
