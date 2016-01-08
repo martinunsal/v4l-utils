@@ -1,0 +1,16 @@
+language: cpp
+
+compiler:
+  - gcc
+
+before_install:
+  - sudo apt-get update
+
+install:
+  - sudo apt-get install debhelper dh-autoreconf autotools-dev doxygen graphviz libasound2-dev libtool libjpeg-dev libqt4-dev libqt4-opengl-dev libudev-dev libx11-dev pkg-config udev
+
+before_script:
+  - ./bootstrap.sh && ./configure
+
+script:
+  - make
