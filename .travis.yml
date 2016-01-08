@@ -23,7 +23,7 @@ addons:
     # GitHub project metadata
     # ** specific to your project **
     project:
-      name: gjasny/v4l-utils
+      name: v4l-utils
       version: 1.8
       description: v4l-utils
 
