@@ -1,3 +1,7 @@
+env:
+  global:
+    - secure: "U1845PCEmWvB0ofhDEW1v5WBzlKVGn5YTq+5KXH6jY0wLI9MYLdO/HWaCoURvyp0qVwBkoaAi+pV8g0EqdI3Z6v2rtlxaiAdYeyIHx8i5/1G3bdhhL1eNfDfEgyta6xh8nGRg0GOjbADKT+2kAAeNZw8fpDWZaXqI5eJUC22zrc="
+
 dist: trusty
 language: cpp
 
@@ -10,9 +14,29 @@ before_install:
 install:
   - sudo apt-get install debhelper dh-autoreconf autotools-dev doxygen graphviz libasound2-dev libtool libjpeg-dev libqt4-dev libqt4-opengl-dev libudev-dev libx11-dev pkg-config udev
 
-before_script:
-  - ./bootstrap.sh && ./configure
-
 script:
-  - make
+  - if [ ${COVERITY_SCAN_BRANCH} != 1 ]; then ./bootstrap.sh && ./configure && make ; fi
 
+addons:
+  coverity_scan:
+
+    # GitHub project metadata
+    # ** specific to your project **
+    project:
+      name: gjasny/v4l-utils
+      version: 1.8
+      description: v4l-utils
+
+    # Where email notification of build analysis results will be sent
+    notification_email: gjasny@googlemail.com
+
+    # Commands to prepare for build_command
+    build_command_prepend: ./bootstrap.sh && ./configure
+
+    # The command that will be added as an argument to "cov-build" to compile your project for analysis,
+    build_command: make
+
+    # Pattern to match selecting branches that will run analysis. We recommend leaving this set to 'coverity_scan'.
+    # Take care in resource usage, and consider the build frequency allowances per
+    #   https://scan.coverity.com/faq#frequency
+    branch_pattern: coverity_scan
