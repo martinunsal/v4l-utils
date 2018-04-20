@@ -28,6 +28,7 @@ extern "C" {
 
 static unsigned stream_count;
 static unsigned stream_skip;
+static unsigned stream_hop;
 static int stream_sleep = -1;
 static bool stream_no_query;
 static unsigned stream_pat;
@@ -50,6 +51,8 @@ static unsigned reqbufs_count_cap = 4;
 static unsigned reqbufs_count_out = 4;
 static char *file_cap;
 static char *host_cap;
+static unsigned cap_len = 0;
+static unsigned cap_stride = 0;
 static unsigned host_port_cap = V4L_STREAM_PORT;
 static int host_fd_cap = -1;
 static unsigned rle_perc;
@@ -61,6 +64,8 @@ static int host_fd_out = -1;
 static struct tpg_data tpg;
 static unsigned output_field = V4L2_FIELD_NONE;
 static bool output_field_alt;
+static char *gpio_path = NULL;
+static unsigned gpio_div = 0;
 
 static void *test_mmap(void *start, size_t length, int prot, int flags,
 		int fd, int64_t offset)
@@ -93,6 +98,10 @@ void streaming_usage(void)
 	       "                     data. If <file> is '-', then the data is written to stdout\n"
 	       "                     and the --silent option is turned on automatically.\n"
 	       "  --stream-to-host=<hostname[:port]> stream to this host. The default port is %d.\n"
+	       "  --stream-to-stride=<bytes> \n"
+	       "                     Stride for writing a subset of stream data to file\n"
+	       "  --stream-to-len=<bytes>\n"
+	       "                     Write this number of bytes per stride\n"
 #endif
 	       "  --stream-poll      use non-blocking mode and select() to stream.\n"
 	       "  --stream-mmap=<count>\n"
@@ -162,7 +171,9 @@ void streaming_usage(void)
 	       "  --list-buffers-sdr-out\n"
 	       "                     list all SDR TX buffers [VIDIOC_QUERYBUF]\n"
 	       "  --list-buffers-meta\n"
-	       "                     list all Meta RX buffers [VIDIOC_QUERYBUF]\n",
+	       "                     list all Meta RX buffers [VIDIOC_QUERYBUF]\n"
+	       "  --gpio=<path>      toggle gpio as frames are captured\n"
+	       "  --gpio-div=<count> number of frames between gpio toggles\n",
 #ifndef NO_STREAM_TO
 		V4L_STREAM_PORT,
 #endif
@@ -331,6 +342,9 @@ void streaming_cmd(int ch, char *optarg)
 	case OptStreamSkip:
 		stream_skip = strtoul(optarg, 0L, 0);
 		break;
+	case OptStreamHop:
+		stream_hop = strtoul(optarg, 0L, 0);
+		break;
 	case OptStreamSleep:
 		stream_sleep = strtol(optarg, 0L, 0);
 		break;
@@ -416,6 +430,12 @@ void streaming_cmd(int ch, char *optarg)
 	case OptStreamToHost:
 		host_cap = optarg;
 		break;
+	case OptStreamToStride:
+		cap_stride = strtoul(optarg, 0L, 0);
+		break;
+	case OptStreamToLen:
+		cap_len = strtoul(optarg, 0L, 0);
+		break;
 	case OptStreamFrom:
 		file_out = optarg;
 		break;
@@ -437,6 +457,12 @@ void streaming_cmd(int ch, char *optarg)
 			if (reqbufs_count_out == 0)
 				reqbufs_count_out = 3;
 		}
+		break;
+	case OptGpio:
+		gpio_path = optarg;
+		break;
+        case OptGpioDiv:
+		gpio_div = strtoul(optarg, 0L, 0);
 		break;
 	}
 }
@@ -946,6 +972,20 @@ static int do_handle_cap(int fd, buffers &b, FILE *fout, int *index,
 	memset(&buf, 0, sizeof(buf));
 	memset(planes, 0, sizeof(planes));
 
+	if (gpio_path && gpio_div) {
+		/* Toggle GPIO as frames are captured */
+		int fd = open(gpio_path, O_WRONLY);
+		if (-1 == fd) {
+			perror("open gpio");
+		} else {
+			unsigned gpio_val = (count / gpio_div) % 2;
+			if (1 != write(fd, gpio_val ? "1" : "0", 1)) {
+				perror("write gpio");
+			}
+		}
+		close(fd);
+	}
+
 	/*
 	 * The stream_count and stream_skip does not apply to capture path of
 	 * M2M devices.
@@ -1017,14 +1057,22 @@ static int do_handle_cap(int fd, buffers &b, FILE *fout, int *index,
 				write_u32(fout, rle_size[j]);
 				used = rle_size[j];
 			}
-			sz = fwrite((char *)b.bufs[buf.index][j] + offset, 1, used, fout);
-
-			if (sz != used)
-				fprintf(stderr, "%u != %u\n", sz, used);
+			if (cap_stride && cap_len) {
+				for (int line_offset = 0; line_offset + cap_len < used; line_offset += cap_stride) {
+					sz = fwrite((char *)b.bufs[buf.index][j] + offset + line_offset, 1, cap_len, fout);
+					if (sz != cap_len)
+						fprintf(stderr, "%u != %u\n", sz, cap_len);
+				}
+			} else {
+				sz = fwrite((char *)b.bufs[buf.index][j] + offset, 1, used, fout);
+				if (sz != used)
+					fprintf(stderr, "%u != %u\n", sz, used);
+			}
 		}
 		if (host_fd_cap >= 0)
 			fflush(fout);
 	}
+
 	if (buf.flags & V4L2_BUF_FLAG_KEYFRAME)
 		ch = 'K';
 	else if (buf.flags & V4L2_BUF_FLAG_PFRAME)

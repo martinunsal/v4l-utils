@@ -222,6 +222,7 @@ static struct option long_options[] = {
 	{"list-buffers-meta", no_argument, 0, OptListBuffersMeta},
 	{"stream-count", required_argument, 0, OptStreamCount},
 	{"stream-skip", required_argument, 0, OptStreamSkip},
+	{"stream-hop", required_argument, 0, OptStreamHop},
 	{"stream-loop", no_argument, 0, OptStreamLoop},
 	{"stream-sleep", required_argument, 0, OptStreamSleep},
 	{"stream-poll", no_argument, 0, OptStreamPoll},
@@ -229,6 +230,8 @@ static struct option long_options[] = {
 #ifndef NO_STREAM_TO
 	{"stream-to", required_argument, 0, OptStreamTo},
 	{"stream-to-host", required_argument, 0, OptStreamToHost},
+	{"stream-to-stride", required_argument, 0, OptStreamToStride},
+	{"stream-to-len", required_argument, 0, OptStreamToLen},
 #endif
 	{"stream-mmap", optional_argument, 0, OptStreamMmap},
 	{"stream-user", optional_argument, 0, OptStreamUser},
@@ -251,6 +254,8 @@ static struct option long_options[] = {
 	{"stream-out-mmap", optional_argument, 0, OptStreamOutMmap},
 	{"stream-out-user", optional_argument, 0, OptStreamOutUser},
 	{"stream-out-dmabuf", no_argument, 0, OptStreamOutDmaBuf},
+	{"gpio", required_argument, 0, OptGpio},
+	{"gpio-div", required_argument, 0, OptGpioDiv},
 	{"list-patterns", no_argument, 0, OptListPatterns},
 	{0, 0, 0, 0}
 };
